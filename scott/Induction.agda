@@ -4,6 +4,7 @@ import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; cong; sym)
 open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_; _∸_)
+open import scott.Binary using (Bin; ⟨⟩; _I; _O; inc; to; from)
 
 -- (Practice) Operators and rings.
 -- 
@@ -164,7 +165,6 @@ finite-+-assoc-4 n p = refl
   ∎
 
 -- (Exercise) (m + n) * p ≡ m * p + n * p
--- TODO
 *-distrib-+ : ∀ (m n p : ℕ) → (m + n) * p ≡ m * p + n * p
 *-distrib-+ zero n p =
   begin
@@ -208,32 +208,189 @@ finite-+-assoc-4 n p = refl
   ∎
 
 -- (Exercise) m * n ≡ n * m
-*-identity : ∀ (m : ℕ) → m * zero ≡ zero * m
+*-identity : ∀ (m : ℕ) → (suc zero) * m ≡ m
 *-identity zero = refl
 *-identity (suc m) =
   begin
-    (suc m) * zero
+    (suc zero) * (suc m)
   ≡⟨⟩
-    zero + m * zero
-  ≡⟨ cong (zero +_) (*-identity m) ⟩
-    zero + zero * m
+    (suc m) + zero * (suc m)
   ≡⟨⟩
-    zero * (suc m)
+    (suc m) + zero
+  ≡⟨ +-comm (suc m) zero ⟩
+    zero + (suc m)
+  ≡⟨⟩
+    (suc m)
   ∎
 
--- *-comm : ∀ (m n : ℕ) → m * n ≡ n * m
--- *-comm zero n rewrite *-identity n = refl
+*-zero : ∀ (m : ℕ) → zero * m ≡ m * zero
+*-zero zero = refl
+*-zero (suc m) =
+  begin
+    zero * (suc m)
+  ≡⟨⟩
+    zero + zero * m
+  ≡⟨ cong (zero +_) (*-zero m) ⟩
+    zero + m * zero
+  ∎
+
+*-suc : ∀ (m n : ℕ) → m * (suc n) ≡ m + m * n
+*-suc zero n = refl
+*-suc (suc m) n =
+  begin
+    (suc m) * (suc n)
+  ≡⟨⟩
+    (suc n) + m * (suc n)
+  ≡⟨ cong ((suc n) +_) (*-suc m n) ⟩
+    (1 + n) + (m + m * n)
+  ≡⟨ cong (_+ (m + m * n)) (+-comm 1 n) ⟩
+    (n + 1) + (m + m * n)
+  ≡⟨ +-assoc n 1 (m + m * n) ⟩
+    n + ((suc m) + m * n)
+  ≡⟨ sym (+-assoc n (suc m) (m * n)) ⟩
+    (n + (suc m)) + m * n
+  ≡⟨ cong (_+ (m * n)) (+-comm n (suc m)) ⟩
+    ((suc m) + n) + m * n
+  ≡⟨ +-assoc (suc m) n (m * n) ⟩
+    (suc m) + (n + m * n)
+  ∎
+
+*-comm : ∀ (m n : ℕ) → m * n ≡ n * m
+*-comm zero n =
+  begin
+    zero * n
+  ≡⟨ *-zero n ⟩
+    n * zero
+  ∎
+*-comm (suc m) n =
+  begin
+    (suc m) * n
+  ≡⟨⟩
+    n + m * n
+  ≡⟨ cong (n +_) (*-comm m n) ⟩
+    n + n * m
+  ≡⟨ sym (*-suc n m) ⟩
+    n * (suc m)
+  ∎
 
 -- (Exercise) zero ∸ n ≡ zero
 ∸-lb : ∀ (n : ℕ) → zero ∸ n ≡ zero
 ∸-lb zero = refl
 ∸-lb (suc n) rewrite ∸-lb n = refl
 
--- (Exercise) n ∸ n ∸ p ≡ m ∸ (n + p)
--- TODO
+-- (Exercise) m ∸ n ∸ p ≡ m ∸ (n + p)
+∸-over-+ : ∀ (m n p : ℕ) → m ∸ n ∸ p ≡ m ∸ (n + p)
+∸-over-+ m zero p = refl
+∸-over-+ zero n p =
+  begin
+    (zero ∸ n) ∸ p
+  ≡⟨ cong (_∸ p) (∸-lb n) ⟩
+    zero ∸ p
+  ≡⟨ ∸-lb p ⟩
+    zero
+  ≡⟨ sym (∸-lb (n + p)) ⟩
+    zero ∸ (n + p)
+  ∎
+∸-over-+ (suc m) (suc n) p =
+  begin
+    (suc m) ∸ (suc n) ∸ p
+  ≡⟨⟩
+    m ∸ n ∸ p
+  ≡⟨ ∸-over-+ m n p ⟩
+    m ∸ (n + p)
+  ∎
 
 -- (Exercise) Distributivity and associativity for ^ and +
--- TODO
+_^_ : ℕ → ℕ → ℕ
+n ^ zero    = suc zero
+n ^ (suc m) = n * (n ^ m)
+
+^-distribˡ-+-* : ∀ (m n p : ℕ) → m ^ (n + p) ≡ (m ^ n) * (m ^ p)
+^-distribˡ-+-* m zero p =
+  begin
+    m ^ (zero + p)
+  ≡⟨⟩
+    m ^ p
+  ≡⟨ sym (*-identity (m ^ p)) ⟩
+    (suc zero) * (m ^ p)
+  ∎
+^-distribˡ-+-* m (suc n) p =
+  begin
+    m ^ ((suc n) + p)
+  ≡⟨⟩
+    m ^ (suc(n + p))
+  ≡⟨⟩
+    m * m ^ (n + p)
+  ≡⟨ cong (m *_) (^-distribˡ-+-* m n p) ⟩
+    m * (m ^ n * m ^ p)
+  ≡⟨ sym (*-assoc m (m ^ n) (m ^ p)) ⟩
+    (m * m ^ n) * m ^ p
+  ≡⟨⟩
+    (m ^ (suc n)) * (m ^ p)
+  ∎
+
+^-distribʳ-* : ∀ (m n p : ℕ) → (m * n) ^ p ≡ (m ^ p) * (n ^ p)
+^-distribʳ-* m n zero = refl
+^-distribʳ-* m n (suc p) =
+  begin
+    (m * n) ^ (suc p)
+  ≡⟨⟩
+    (m * n) * ((m * n) ^ p)
+  ≡⟨ cong ((m * n) *_) (^-distribʳ-* m n p) ⟩
+    (m * n) * ((m ^ p) * (n ^ p))
+  ≡⟨ cong ((m * n) *_) (*-comm (m ^ p) (n ^ p)) ⟩
+    (m * n) * ((n ^ p) * (m ^ p))
+  ≡⟨ *-assoc m n ((n ^ p) * (m ^ p)) ⟩
+    m * (n * ((n ^ p) * (m ^ p)))
+  ≡⟨ cong (m *_) (sym (*-assoc n (n ^ p) (m ^ p))) ⟩
+    m * ((n * n ^ p) * m ^ p)
+  ≡⟨⟩
+    m * ((n ^ (suc p)) * (m ^ p))
+  ≡⟨ cong (m *_) (*-comm (n ^ (suc p)) (m ^ p)) ⟩
+    m * ((m ^ p) * (n ^ (suc p)))
+  ≡⟨ sym (*-assoc m (m ^ p) (n ^ (suc p))) ⟩
+    (m * (m ^ p)) * (n ^ (suc p))
+  ≡⟨⟩
+    (m ^ (suc p)) * (n ^ (suc p))
+  ∎
 
 -- (Exercise) Binary laws
--- TODO
+from-inc-≡-suc-from : ∀ (b : Bin) → from (inc b) ≡ suc (from b)
+from-inc-≡-suc-from ⟨⟩ = refl
+from-inc-≡-suc-from (b O) = refl
+from-inc-≡-suc-from (b I) =
+  begin
+    from (inc (b I))
+  ≡⟨⟩
+    from ((inc b) O)
+  ≡⟨⟩
+    (from (inc b)) + (from (inc b))
+  ≡⟨ cong (_+ (from (inc b))) (from-inc-≡-suc-from b) ⟩
+    (suc (from b)) + (from (inc b))
+  ≡⟨ cong ((suc (from b)) +_) (from-inc-≡-suc-from b) ⟩
+    (suc (from b)) + (suc (from b))
+  ≡⟨⟩
+    suc ((from b) + (suc (from b)))
+  ≡⟨ cong suc (+-suc (from b) (from b)) ⟩
+    suc (suc ((from b) + (from b)))
+  ≡⟨⟩
+    suc (suc (from (b O)))
+  ≡⟨⟩
+    suc (from (b I))
+  ∎
+
+_ : to (from (⟨⟩ O O)) ≡ (⟨⟩ O)
+_ = refl
+
+from-inverts-to : ∀ (n : ℕ) → from (to n) ≡ n
+from-inverts-to zero = refl
+from-inverts-to (suc n) =
+  begin
+    from (to (suc n))
+  ≡⟨⟩
+    from (inc (to n))
+  ≡⟨ from-inc-≡-suc-from (to n) ⟩
+    suc (from (to n))
+  ≡⟨ cong suc (from-inverts-to n) ⟩
+    suc n
+  ∎
