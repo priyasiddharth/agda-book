@@ -30,3 +30,16 @@ open import Data.Nat using (ℕ; zero; suc; _+_; _*_; _∸_)
 *-assoc : ∀ m n p → (m * n) * p ≡ m * (n * p)
 *-assoc zero n p = refl
 *-assoc (suc m) n p rewrite *-distrib-+ n (m * n) p | *-assoc m n p = refl
+
+
+*-identity : ∀ (m : ℕ) → m * zero ≡ zero
+*-identity zero = refl
+*-identity (suc m) rewrite *-identity m = refl
+
+*-suc′ : ∀ (m n : ℕ) → m * suc n ≡ m + m * n
+*-suc′ zero n = refl
+*-suc′ (suc m) n rewrite *-suc′ m n | +-swap n m (m * n) = refl
+
+*-comm : ∀ (m n : ℕ) → m * n ≡ n * m
+*-comm m zero rewrite *-identity m  = refl
+*-comm m (suc n) rewrite *-suc′ m n | *-comm m n = refl
