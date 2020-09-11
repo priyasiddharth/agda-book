@@ -4,6 +4,10 @@ import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; cong; sym)
 open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_; _∸_)
+open import Data.Nat.Properties using (+-suc)
+open import Data.Nat using (_≤_; z≤n; s≤s)
+open import Data.Nat.Properties using (≤-refl; ≤-trans; ≤-antisym; ≤-total;
+                                       +-monoʳ-≤; +-monoˡ-≤; +-mono-≤)
 
 -- Strech exercise: implement a base-two numeration system with basic operators.
 
@@ -77,3 +81,108 @@ _ : from (⟨⟩ I I O) ≡ 6
 _ = refl
 _ : from (⟨⟩ O O I I O) ≡ 6
 _ = refl
+
+-- (Exercise) Laws of binary conversion.
+from-inc-≡-suc-from : ∀ (b : Bin) → from (inc b) ≡ suc (from b)
+from-inc-≡-suc-from ⟨⟩ = refl
+from-inc-≡-suc-from (b O) = refl
+from-inc-≡-suc-from (b I) =
+  begin
+    from (inc (b I))
+  ≡⟨⟩
+    from ((inc b) O)
+  ≡⟨⟩
+    (from (inc b)) + (from (inc b))
+  ≡⟨ cong (_+ (from (inc b))) (from-inc-≡-suc-from b) ⟩
+    (suc (from b)) + (from (inc b))
+  ≡⟨ cong ((suc (from b)) +_) (from-inc-≡-suc-from b) ⟩
+    (suc (from b)) + (suc (from b))
+  ≡⟨⟩
+    suc ((from b) + (suc (from b)))
+  ≡⟨ cong suc (+-suc (from b) (from b)) ⟩
+    suc (suc ((from b) + (from b)))
+  ≡⟨⟩
+    suc (suc (from (b O)))
+  ≡⟨⟩
+    suc (from (b I))
+  ∎
+
+_ : to (from (⟨⟩ O O)) ≡ (⟨⟩ O)
+_ = refl
+
+from-inverts-to : ∀ (n : ℕ) → from (to n) ≡ n
+from-inverts-to zero = refl
+from-inverts-to (suc n) =
+  begin
+    from (to (suc n))
+  ≡⟨⟩
+    from (inc (to n))
+  ≡⟨ from-inc-≡-suc-from (to n) ⟩
+    suc (from (to n))
+  ≡⟨ cong suc (from-inverts-to n) ⟩
+    suc n
+  ∎
+
+-- (Excercise) Binary canonical forms.
+
+data One : Bin → Set where
+  unit : One (⟨⟩ I)
+  ext0 : ∀ {w : Bin} → One w → One (w O)
+  ext1 : ∀ {w : Bin} → One w → One (w I)
+
+data Can : Bin → Set where
+  cnil : Can(⟨⟩ O)
+  cone : ∀ {w : Bin} → One w → Can w
+
+_ : Can (⟨⟩ I O I I O)
+_ = cone (ext0 (ext1 (ext1 (ext0 unit))))
+
+_ : Can(⟨⟩ O)
+_ = cnil
+
+inc-preserves-one : ∀ {w : Bin} → One w → One (inc w)
+inc-preserves-one unit      = ext0 unit
+inc-preserves-one (ext0 ow) = ext1 ow
+inc-preserves-one (ext1 ow) = ext0 (inc-preserves-one ow)
+
+inc-preserves-can : ∀ {w : Bin} → Can w → Can (inc w)
+inc-preserves-can cnil      = cone unit
+inc-preserves-can (cone ow) = cone (inc-preserves-one ow)
+
+nonzero-to-is-in-can : ∀ (n : ℕ) → One (to (suc n))
+nonzero-to-is-in-can zero    = unit
+nonzero-to-is-in-can (suc n) = inc-preserves-one (nonzero-to-is-in-can n)
+
+to-is-in-can : ∀ (n : ℕ) → Can (to n)
+to-is-in-can zero    = cnil
+to-is-in-can (suc n) = cone (nonzero-to-is-in-can n)
+
+O-mono-≤ : ∀ (w : Bin) → from w ≤ from (w O)
+O-mono-≤ ⟨⟩    = z≤n
+O-mono-≤ (w O) = +-mono-≤ (O-mono-≤ w) (O-mono-≤ w)
+-- Note: (+-mono-≤ (≤-refl {1}) (O-mono-≤ w)) has type, 1 + 2 * (from w) ≤ 1 + 4 * (from w)
+-- Note: (+-mono-≤ (z≤n {1}) (O-mono-≤ w)) has type, 2 * (from w) ≤ 1 + 4 * (from w)
+O-mono-≤ (w I) = +-mono-≤ (+-mono-≤ (≤-refl {1}) (O-mono-≤ w)) (+-mono-≤ (z≤n {1}) (O-mono-≤ w))
+
+I-mono-≤ : ∀ (w : Bin) → from w ≤ from (w I)
+I-mono-≤ w = +-mono-≤ (z≤n {1}) (O-mono-≤ w)
+
+one→nonzero : ∀ {w : Bin} → One w → 1 ≤ from w
+one→nonzero unit      = s≤s z≤n
+one→nonzero {w O} (ext0 ow) = ≤-trans (one→nonzero ow) (O-mono-≤ w)
+one→nonzero {w I} (ext1 ow) = ≤-trans (one→nonzero ow) (I-mono-≤ w)
+
+to-inverts-from-one : ∀ (w : Bin) → One w → to (from w) ≡ w
+to-inverts-from-one w     unit      = refl
+to-inverts-from-one (w I) (ext1 wo) =
+  begin
+    to (from (w I))
+  ≡⟨⟩
+    inc (to (from (w O)))
+  ≡⟨⟩
+    inc (to ((from w) + (from w)))
+  ∎
+
+to-inverts-from-can : ∀ (w : Bin) → Can w → to (from w) ≡ w
+to-inverts-from-can (⟨⟩ O) cnil      = refl
+to-inverts-from-can w      (cone ow) = to-inverts-from-one w ow
