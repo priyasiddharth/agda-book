@@ -98,3 +98,56 @@ data Total (m n : ℕ) : Set where
   -------
   → m * p ≤ n * q
 *-mono-≤ m n p q m≤n p≤q = ≤-trans (*-monoˡ-≤ m n p m≤n) (*-monoʳ-≤ n p q p≤q)
+
+
+data even : ℕ → Set
+data odd  : ℕ → Set
+
+data even where
+
+  zero :
+      ---------
+      even zero
+
+  suc  : ∀ {n : ℕ}
+    → odd n
+      ------------
+    → even (suc n)
+
+data odd where
+
+  suc  : ∀ {n : ℕ}
+    → even n
+      -----------
+    → odd (suc n)
+
+e+e≡e : ∀ {m n : ℕ}
+  → even m
+  → even n
+    ------------
+  → even (m + n)
+
+o+e≡o : ∀ {m n : ℕ}
+  → odd m
+  → even n
+    -----------
+  → odd (m + n)
+
+e+e≡e zero n = n
+e+e≡e (suc x) n = suc (o+e≡o x n)
+o+e≡o (suc x) n = suc (e+e≡e x n)
+
+e+o≡o : ∀ {m n : ℕ}
+  → even m
+  → odd n
+  ---------
+  → odd (m + n)
+
+e+o≡o {m} {n} evenm oddn rewrite +-comm m n = o+e≡o oddn evenm
+o+o≡e : ∀ {m n : ℕ}
+  → odd m
+  → odd n
+  --------
+  → even (m + n)
+
+o+o≡e {.(suc _)} {n} (suc x) oddn = suc (e+o≡o x oddn)
