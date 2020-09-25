@@ -172,17 +172,35 @@ one→nonzero unit      = s≤s z≤n
 one→nonzero {w O} (ext0 ow) = ≤-trans (one→nonzero ow) (O-mono-≤ w)
 one→nonzero {w I} (ext1 ow) = ≤-trans (one→nonzero ow) (I-mono-≤ w)
 
-to-inverts-from-one : ∀ (w : Bin) → One w → to (from w) ≡ w
-to-inverts-from-one w     unit      = refl
-to-inverts-from-one (w I) (ext1 wo) =
-  begin
-    to (from (w I))
-  ≡⟨⟩
-    inc (to (from (w O)))
-  ≡⟨⟩
-    inc (to ((from w) + (from w)))
-  ∎
+--to-inverts-from-one : ∀ (w : Bin) → One w → to (from w) ≡ w
+--to-inverts-from-one w     unit      = refl
+--to-inverts-from-one (w I) (ext1 wo) =
+--  begin
+--    to (from (w I))
+--  ≡⟨⟩
+--    inc (to (from (w O)))
+--  ≡⟨⟩
+--    inc (to ((from w) + (from w)))
+--  ∎
 
-to-inverts-from-can : ∀ (w : Bin) → Can w → to (from w) ≡ w
-to-inverts-from-can (⟨⟩ O) cnil      = refl
-to-inverts-from-can w      (cone ow) = to-inverts-from-one w ow
+--to-inverts-from-can : ∀ (w : Bin) → Can w → to (from w) ≡ w
+--to-inverts-from-can (⟨⟩ O) cnil      = refl
+--to-inverts-from-can w      (cone ow) = to-inverts-from-one w ow
+
+-- Proof of embedding from ℕ to Bin.
+
+infix 0 _≲_
+record _≲_ (A B : Set) : Set where
+  field
+    forward : A → B
+    reverse : B → A
+    inverse : ∀ (x : A) → reverse (forward x) ≡ x
+open _≲_
+
+ℕ-embeds-Bin : ℕ ≲ Bin
+ℕ-embeds-Bin =
+  record
+    { forward = to
+    ; reverse = from
+    ; inverse = from-inverts-to
+    }
