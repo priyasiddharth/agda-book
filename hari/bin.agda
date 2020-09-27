@@ -108,3 +108,8 @@ canidn : ∀ (b : Bin) → Can b → b ≡ to (from b)
 canidn .<> zero = refl
 canidn .(<> I) (one base) = refl
 canidn .(inc b) (one (incone {b} x)) rewrite incsuc b | sym (canidn b (one x))  = refl
+
+open import isomorphism using (≲)
+-- isomorphism._≲_ (ℕ Bin)
+ℕ≲Bin : isomorphism._≲_ ℕ Bin
+ℕ≲Bin = record { to = to ; from = from ; from∘to = fromto }
