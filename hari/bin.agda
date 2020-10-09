@@ -99,17 +99,14 @@ toncan : ∀ (n : ℕ) → Can (to n)
 toncan zero =  zero
 toncan (suc n) = inccan (toncan n)
 
---- It was suggested in plfa to prove this theorem. However, I do not see the purpose
-oneblt1 : ∀ (b : Bin) → (One b) → 1 ≤ (from b)
-oneblt1 = {!!}
----- don't understand why termination check is failing.
----- In the input, I have (inc b) and x is a proof of One b. So why can't I say candin b one x ?
+one-can : ∀ (b : Bin) → One b → b ≡ to (from b)
+one-can .(<> I) base = refl
+one-can .(inc _) (incone {b} oneb) rewrite incsuc b | sym (one-can b oneb) = refl
 canidn : ∀ (b : Bin) → Can b → b ≡ to (from b)
 canidn .<> zero = refl
-canidn .(<> I) (one base) = refl
-canidn .(inc b) (one (incone {b} x)) rewrite incsuc b | sym (canidn b (one x))  = refl
+canidn incb (one one-incb) = one-can incb one-incb
 
-open import isomorphism using (≲)
+open import isomorphism
 -- isomorphism._≲_ (ℕ Bin)
 ℕ≲Bin : isomorphism._≲_ ℕ Bin
 ℕ≲Bin = record { to = to ; from = from ; from∘to = fromto }
